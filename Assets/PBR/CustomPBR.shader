@@ -8,6 +8,7 @@
 
 	CGINCLUDE
 	#include "./PBRLib.cginc"
+	#include "./PBRGILib.cginc"
 	ENDCG
 
 	SubShader
@@ -63,15 +64,20 @@
 				fixed4 metalRoughnessAO = tex2D(_MetalRoughness, i.uv);
 				half metallic = metalRoughnessAO.r;
 				half roughness = metalRoughnessAO.g;
-				half ao = metalRoughnessAO.b;
+				half occlusion = metalRoughnessAO.b;
 				
+				half3 worldNormal = normalize(i.worldNormal);
 				half3 lightDir = UnityWorldSpaceLightDir(i.worldPos);
 				half3 viewDir = UnityWorldSpaceViewDir(i.worldPos);
-				half NdotL = saturate(dot(i.worldNormal, lightDir));
-				half NdotV = saturate(dot(i.worldNormal, viewDir));
+				half3 reflectDir = reflect(-viewDir, worldNormal);
+
+				half NdotL = saturate(dot(worldNormal, lightDir));
+				half NdotV = saturate(dot(worldNormal, viewDir));
 				half3 halfDir = SafeNormalize(lightDir + viewDir);
-				half NdotH = saturate(dot(i.worldNormal, halfDir));
+				half NdotH = saturate(dot(worldNormal, halfDir));
 				half HdotL = saturate(dot(halfDir, lightDir));
+
+				roughness = max(roughness, 0.002);
 				half D = GGXTerm(NdotH, roughness);
 				half G = SmithJointGGXVisibilityTerm(NdotL, NdotV, roughness);
 				
@@ -79,12 +85,17 @@
 				half3 specColor;
 				half3 diffuseColor = DiffuseAndSpecularFromMetallic(albedo, metallic, specColor, oneMinusReflectivity);
 
-				half diffuseTerm = LambertTerm(i.worldNormal, lightDir);
+				half diffuseTerm = LambertTerm(worldNormal, lightDir);
 				half specularTerm = D * G * UNITY_PI;
 				specularTerm = max(0, specularTerm * NdotL);
 
+				half surfaceReduction = 1.0 / (roughness * 	roughness + 1.0);
+				half3 specularGI = GI_IndirectSpecular(roughness, occlusion, reflectDir);
+
+				half grazingTerm = saturate(1 - roughness + (1-oneMinusReflectivity));
 				half3 color = diffuseColor * diffuseTerm * _LightColor0.rgb 
-							+ specularTerm * _LightColor0.rgb * FresnelTerm(specColor, HdotL);
+							+ specularTerm * _LightColor0.rgb * FresnelTerm(specColor, HdotL)
+							+ surfaceReduction * specularGI * FresnelLerp(specColor, grazingTerm, NdotV);
 
 				return fixed4(color, 1);
 			}

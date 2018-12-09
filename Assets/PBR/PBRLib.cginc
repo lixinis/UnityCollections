@@ -50,6 +50,12 @@ inline half3 FresnelTerm (half3 F0, half cosA)
     return F0 + (1-F0) * t;
 }
 
+inline half3 FresnelLerp (half3 F0, half3 F90, half cosA)
+{
+    half t = Pow5 (1 - cosA);
+    return lerp (F0, F90, t);
+}
+
 inline half3 SafeNormalize(half3 v)
 {
     float dp3 = max(0.001f, dot(v, v));

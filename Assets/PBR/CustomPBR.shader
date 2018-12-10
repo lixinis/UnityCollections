@@ -68,7 +68,7 @@
 				
 				half3 worldNormal = normalize(i.worldNormal);
 				half3 lightDir = UnityWorldSpaceLightDir(i.worldPos);
-				half3 viewDir = UnityWorldSpaceViewDir(i.worldPos);
+				half3 viewDir = SafeNormalize(UnityWorldSpaceViewDir(i.worldPos));
 				half3 reflectDir = reflect(-viewDir, worldNormal);
 
 				half NdotL = saturate(dot(worldNormal, lightDir));

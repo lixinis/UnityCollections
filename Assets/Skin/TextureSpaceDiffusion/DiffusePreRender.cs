@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
+[ExecuteInEditMode]
 public class DiffusePreRender : MonoBehaviour
 {
 	public Material m_TextureSpaceMat;
@@ -32,7 +33,7 @@ public class DiffusePreRender : MonoBehaviour
 
     void Awake()
     {
-		mesh = GetComponent<MeshFilter>().mesh;
+		mesh = GetComponent<MeshFilter>().sharedMesh;
 		combineMaterial = GetComponent<MeshRenderer>().sharedMaterial;
 		rts = new RenderTexture[iteration];
 		for (var i = 0; i < iteration; i++)
@@ -40,6 +41,10 @@ public class DiffusePreRender : MonoBehaviour
         	rts[i] = new RenderTexture(TEXTURE_SIZE, TEXTURE_SIZE, 0, RenderTextureFormat.ARGB32);
 		}
 		combineMaterial.SetTexture("_DiffuseTex0", rts[0]);
+		combineMaterial.SetTexture("_DiffuseTex1", rts[1]);
+		combineMaterial.SetTexture("_DiffuseTex2", rts[2]);
+		combineMaterial.SetTexture("_DiffuseTex3", rts[3]);
+		combineMaterial.SetTexture("_DiffuseTex4", rts[4]);
     }
 
 	public void OnEnable()
@@ -72,6 +77,9 @@ public class DiffusePreRender : MonoBehaviour
 
 		buf.SetRenderTarget(rts[0]);
 		buf.DrawMesh(mesh, transform.localToWorldMatrix, m_TextureSpaceMat);
+
+		buf.Blit(rts[0], rts[1], m_BlurMaterial);
+
 
 		cam.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, buf);
 	}

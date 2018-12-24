@@ -4,6 +4,8 @@
 	{
 		_Albedo ("Albedo", 2D) = "white" {}
 		_MetalRoughness ("Metal(R) & Roughness(G)", 2D) = "black" {}
+		_Metallic("Metallic", Range(0.0, 1.0)) = 0.5
+		_Roughness("Roughness", Range(0.0, 1.0)) = 0.5
 	}
 
 	CGINCLUDE
@@ -22,6 +24,9 @@
 			Tags { "LightMode" = "ForwardBase" }
 
 			CGPROGRAM
+			
+			#pragma shader_feature _METALLICROUGHNESSMAP
+
 			#pragma vertex vert
 			#pragma fragment frag
 			#pragma multi_compile_fwdbase
@@ -47,6 +52,8 @@
 			sampler2D _Albedo;
 			float4 _Albedo_ST;
 			sampler2D _MetalRoughness;
+			half _Metallic;
+			half _Roughness;
 			
 			v2f vert (appdata v)
 			{
@@ -61,11 +68,21 @@
 			fixed4 frag (v2f i) : SV_Target
 			{
 				fixed4 albedo = tex2D(_Albedo, i.uv);
+				half metallic;
+				half roughness;
+				half occlusion;
+			#ifdef _METALLICROUGHNESSMAP
 				fixed4 metalRoughnessAO = tex2D(_MetalRoughness, i.uv);
-				half metallic = metalRoughnessAO.r;
-				half roughness = metalRoughnessAO.g;
-				half occlusion = metalRoughnessAO.b;
+				metallic = metalRoughnessAO.r;
+				roughness = metalRoughnessAO.g;
+				occlusion = metalRoughnessAO.b;
+			#else
+				metallic = _Metallic;
+				roughness = _Roughness;
+				occlusion = 1.0;
+			#endif
 				
+				roughness = roughness * roughness;
 				half3 worldNormal = normalize(i.worldNormal);
 				half3 lightDir = UnityWorldSpaceLightDir(i.worldPos);
 				half3 viewDir = SafeNormalize(UnityWorldSpaceViewDir(i.worldPos));
@@ -102,4 +119,5 @@
 			ENDCG
 		}
 	}
+	CustomEditor "CustomPBRGUI"
 }

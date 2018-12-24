@@ -19,6 +19,7 @@
 			#pragma fragment frag
 			
 			#include "UnityCG.cginc"
+			#include "UnityLightingCommon.cginc"
 
 			struct appdata
 			{
@@ -31,7 +32,8 @@
 			{
 				float4 vertex : SV_POSITION;
 				float2 uv : TEXCOORD0;
-				float4 normal : TEXCOORD1;
+				float3 normal : TEXCOORD1;
+				float3 worldPos : TEXCOORD2;
 			};
 
 			sampler2D _MainTex;
@@ -45,13 +47,17 @@
 					o.vertex.y = -o.vertex.y;
 				#endif
 				o.uv = TRANSFORM_TEX(v.uv, _MainTex);
-
+				o.worldPos = mul(unity_ObjectToWorld, v.vertex);
+				o.normal = UnityObjectToWorldNormal(v.normal);
 				return o;
 			}
 			
 			fixed4 frag (v2f i) : SV_Target
 			{
 				fixed4 col = tex2D(_MainTex, i.uv);
+				half3 lightDir = UnityWorldSpaceLightDir(i.worldPos);
+				half diffuse = max(dot(lightDir, i.normal), 0);
+				col *= diffuse * _LightColor0;
 				return col;
 			}
 			ENDCG

@@ -8,11 +8,14 @@ public class DiffusePreRender : MonoBehaviour
 {
 	public Material m_TextureSpaceMat;
 	public Shader m_BlurShader;
+	public float blurRadius = 1.5f;
+	public Color clearColor = Color.white;
 	private Material m_BlurMaterial;
 
 	const int TEXTURE_SIZE = 1024;
 	const int iteration = 5;
 	RenderTexture[] rts;
+	RenderTexture blurTempRT;
 	Mesh mesh;
 	Material combineMaterial;
 
@@ -45,6 +48,7 @@ public class DiffusePreRender : MonoBehaviour
 		combineMaterial.SetTexture("_DiffuseTex2", rts[2]);
 		combineMaterial.SetTexture("_DiffuseTex3", rts[3]);
 		combineMaterial.SetTexture("_DiffuseTex4", rts[4]);
+		blurTempRT = new RenderTexture(TEXTURE_SIZE, TEXTURE_SIZE, 0, RenderTextureFormat.ARGB32);
     }
 
 	public void OnEnable()
@@ -57,6 +61,14 @@ public class DiffusePreRender : MonoBehaviour
 		Cleanup();
 	}
 	
+	void Update()
+	{
+		if (m_BlurMaterial)
+		{
+			m_BlurMaterial.SetFloat("_BlurRadius", blurRadius);
+		}
+	}
+
 	void OnWillRenderObject() 
 	{
 		var cam = Camera.current;
@@ -75,11 +87,20 @@ public class DiffusePreRender : MonoBehaviour
 		buf = new CommandBuffer();
 		m_Cameras[cam] = buf;
 
+		for (var i = 0; i < 5; i++)
+		{
+			buf.SetRenderTarget(rts[i]);
+			buf.ClearRenderTarget(false, true, clearColor);
+		}
+
 		buf.SetRenderTarget(rts[0]);
 		buf.DrawMesh(mesh, transform.localToWorldMatrix, m_TextureSpaceMat);
 
-		buf.Blit(rts[0], rts[1], m_BlurMaterial);
-
+		for (var i = 0; i < 4; i++) 
+		{
+			buf.Blit(rts[i], blurTempRT, m_BlurMaterial, 0);
+			buf.Blit(blurTempRT, rts[i + 1], m_BlurMaterial, 1);
+		}
 
 		cam.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, buf);
 	}

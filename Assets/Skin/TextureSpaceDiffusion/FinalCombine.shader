@@ -57,6 +57,7 @@
 				v2f o;
 				o.vertex = UnityObjectToClipPos(v.vertex);
 				o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+				
 				o.normal = UnityObjectToWorldNormal(v.normal);
 				o.worldPos = mul(unity_ObjectToWorld, v.vertex);
 				return o;
@@ -65,13 +66,23 @@
 			fixed4 frag (v2f i) : SV_Target
 			{
 				// sample the texture
-				fixed4 col = tex2D(_MainTex, i.uv);
-				fixed4 colDiffuse0 = tex2D(_DiffuseTex0, i.uv);
+				half factor = 1.0 / 6.0;
+				fixed4 baseColor = tex2D(_MainTex, i.uv);
 
 				half3 lightDir = UnityWorldSpaceLightDir(i.worldPos);
 				half diffuse = dot(i.normal, lightDir);
 
-				return col * diffuse * _LightColor0;
+				fixed4 col = baseColor * diffuse * _LightColor0 * factor;
+
+				col += tex2D(_DiffuseTex0, i.uv) * factor;
+				col += tex2D(_DiffuseTex1, i.uv) * factor;
+				col += tex2D(_DiffuseTex2, i.uv) * factor;
+				col += tex2D(_DiffuseTex3, i.uv) * factor;
+				col += tex2D(_DiffuseTex4, i.uv) * factor;
+
+				col.xyz += UNITY_LIGHTMODEL_AMBIENT.xyz * baseColor;
+
+				return fixed4(col.rgb, 1);
 			}
 			ENDCG
 		}

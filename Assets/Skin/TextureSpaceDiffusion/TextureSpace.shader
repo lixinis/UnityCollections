@@ -43,9 +43,9 @@
 			{
 				v2f o;
 				o.vertex = float4(v.uv.x * 2.0 - 1.0, 1.0 - v.uv.y * 2.0, 0.0, 1.0);
-				#if UNITY_UV_STARTS_AT_TOP
-					o.vertex.y = -o.vertex.y;
-				#endif
+				// #if UNITY_UV_STARTS_AT_TOP
+				// 	o.vertex.y = -o.vertex.y;
+				// #endif
 				o.uv = TRANSFORM_TEX(v.uv, _MainTex);
 				o.worldPos = mul(unity_ObjectToWorld, v.vertex);
 				o.normal = UnityObjectToWorldNormal(v.normal);
